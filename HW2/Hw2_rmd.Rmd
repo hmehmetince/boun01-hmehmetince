@@ -1,0 +1,173 @@
+---
+title: 'Assignment 2: Electricity Market Prices'
+author: "Hacı Mehmet İnce"
+date: "8/23/2020"
+output: html_document
+---
+
+## Introduction
+
+In this assignment, electricity prices data of July, 2020 are analyzed using dplyr and ggplot2. The data used can be accessed on the [website of EPİAŞ](https://rapor.epias.com.tr/rapor/xhtml/ptfSmfListeleme.xhtml).
+
+
+
+First, the required libraries have been loaded.
+
+```{r,warning=FALSE,message=FALSE}
+library(tidyverse)
+library(lubridate)
+
+```
+
+
+## Data Preparation
+
+Data downloaded in English, loaded from csv file. The "head" function was used to confirm that the data was loaded correctly.
+
+```{r}
+mydata = read.csv("ptf-smf.csv")
+head(mydata)
+```
+
+
+Some columns have been renamed to make it easier to work on the data.
+
+```{r}
+names(mydata)[2:5] = c("MCP", "SMP", "PIP", "NIP") 
+
+names(mydata)
+
+mydata %>% glimpse()
+```
+
+
+The contents of the "Date" and "SMP.Direction" columns have been changed. Some of the attributes related to time have been removed from the "Date" column. The month and year properties are not omitted, as they belong to the same month and year.
+
+```{r}
+mydata = mydata %>%
+  mutate(SMP.Direction=case_when(SMP.Direction=="?Energy Surplus" ~ "Surplus", SMP.Direction=="? Energy Deficit"~ "Deficit", SMP.Direction=="? In Balance" ~ "Balance")) %>%
+  mutate(Date=as.POSIXct(Date, format="%d.%m.%y %H:%M")) %>%
+  mutate(Day=day(Date), Hour=hour(Date), WeekDay=wday(Date))
+
+```
+
+
+The day of the week has been translated into names to increase readability.
+
+```{r}
+days = c("Sun","Mon","Tue","Wed","Thu","Fri","Sat")
+for (i in 1:7){
+  mydata$WeekDay = gsub(c(i), days[i], mydata$WeekDay)
+}
+
+mydata$WeekDay = factor(mydata$WeekDay, levels= days)
+```
+
+A new column was created by taking the difference of SMP and MCP columns. The final version of the data was examined.
+
+```{r}
+mydata$Diff = mydata$SMP - mydata$MCP
+
+mydata %>% glimpse()
+```
+
+## Data Visualization
+
+The chart below was created to see the general distribution of SMP and MCP.
+
+```{r}
+ggplot(mydata, aes(x=SMP, y=MCP)) + 
+  geom_point() + 
+  theme_minimal() + 
+  ggtitle("SMP vs MCP on July, 2020") + 
+  labs(x = "SMP", y = "MCP") +
+  geom_abline(slope=1, intercept=0)
+
+```
+
+
+The average of SMP and MCP according to the days of the week was found and recorded as AvgofWeekDays.
+
+```{r}
+AvgofWeekDays =
+  mydata %>%
+  group_by(WeekDay) %>%
+  summarise(AvgSMP = mean(SMP), AvgMCP = mean(MCP), AvgDiff = mean(Diff))
+
+```
+
+The same was done according to the time of day, recorded as AvgofHours.
+
+```{r}
+AvgofHours =
+  mydata %>%
+  group_by(Hour) %>%
+  summarise(AvgMCP = mean(MCP), AvgSMP = mean(SMP), AvgDiff = mean(Diff))
+
+```
+
+
+The information has been reorganized in order to make it graphics.
+
+```{r}
+pivotAvgofWeekDays =
+  AvgofWeekDays %>%
+  ungroup() %>%
+  pivot_longer(cols=c(AvgMCP, AvgSMP), names_to="SMPorMCP", values_to="Price")
+```
+
+```{r}
+pivotAvgofHours =
+  AvgofHours %>%
+  ungroup() %>%
+  pivot_longer(cols=c(AvgMCP, AvgSMP), names_to="SMPorMCP", values_to="Price")
+
+```
+
+
+
+
+```{r}
+ggplot(pivotAvgofWeekDays,aes(x=WeekDay,y=Price,fill=SMPorMCP)) +
+  geom_bar(stat="Identity",position = "dodge") +
+  scale_fill_manual(values = c("darkblue", "darkgreen"), name = "", labels = c("SMP", "MCP")) +
+  theme_minimal() +
+  labs(x="Week Day", y="Price", title="Avg Prices by Week Day")
+
+```
+
+As can be seen from the graph above, prices are lower than on other days as demand is lower on Sundays, possibly due to holidays.
+
+
+```{r}
+ggplot(pivotAvgofHours,aes(x=Hour,y=Price,fill=SMPorMCP)) +
+  geom_bar(stat="Identity",position = "dodge") +
+  scale_fill_manual(values=c("darkblue", "darkgreen"), name = "", labels = c("SMP", "MCP")) +
+  theme_minimal() +
+  labs(x="Hour", y="Price", title="Avg Prices by Hour")
+```
+
+As can be seen from the graph above, as the early morning hours are approaching, prices are lower than other hours due to the fact that electricity consumption decreases the most. Also, there is a slight decrease in the hours that coincide with the lunch break.
+
+
+If the graphics are created according to the difference (SMP - MCP), the following results are obtained.
+
+```{r}
+ggplot(data=pivotAvgofWeekDays, aes(x=WeekDay, y=AvgDiff, group=1)) +
+  geom_line() +
+  geom_point() +
+  theme_minimal() +
+  labs(x="Week Day", y="Average Difference", title="Avg Differences (SMP - MCP) by Week Day")
+
+```
+
+
+```{r}
+ggplot(data=pivotAvgofHours, aes(x=Hour, y=AvgDiff)) +
+  geom_line() +
+  geom_point() +
+  theme_minimal() +
+  labs(x="Hour", y="Average Difference", title="Avg Differences (SMP - MCP) by Hour")
+
+```
+
