@@ -5,13 +5,25 @@ date: "8/23/2020"
 output: html_document
 ---
 
-## Introduction
+# Introduction
 
-In this assignment, electricity prices data of July, 2020 are analyzed using dplyr and ggplot2. The data used can be accessed on the [website of EPİAŞ](https://rapor.epias.com.tr/rapor/xhtml/ptfSmfListeleme.xhtml).
+  In this assignment, electricity prices data of July, 2020 are analyzed using dplyr and ggplot2. The data used can be accessed on the [website of EPİAŞ](https://rapor.epias.com.tr/rapor/xhtml/ptfSmfListeleme.xhtml).
+
+## Information about Data
+
+  The data includes 6 columns and 744 rows, 24 rows for each day in July, 2020. What information each column contains is as follows:
+  
+  - Date: Date and hour of the recording
+  - MCP. (renamed as MCP): Market clearing price
+  - SMP. (renamed as SMP): System marginal price
+  - Positive.Imbalance.Price..TL.MWh. (renamed as PIP): 0.97xmin(MCP,SMP)
+  - Negative.Imbalance.Price..TL.MWh. (renamed as NIP): 1.03xmax(MCP,SMP)
+  - SMP.Direction: Information of comparing energy demand and forecast. When demand is higher than forecast, there is an energy deficit. On the contrary, there is an energy surplus. 
 
 
+# Data Analysis with R
 
-First, the required libraries have been loaded.
+  First, the required libraries have been loaded.
 
 ```{r,warning=FALSE,message=FALSE}
 library(tidyverse)
@@ -22,7 +34,7 @@ library(lubridate)
 
 ## Data Preparation
 
-Data downloaded in English, loaded from csv file. The "head" function was used to confirm that the data was loaded correctly.
+  Data downloaded in English, loaded from csv file. The "head" function was used to confirm that the data was loaded correctly.
 
 ```{r}
 mydata = read.csv("ptf-smf.csv")
@@ -30,7 +42,7 @@ head(mydata)
 ```
 
 
-Some columns have been renamed to make it easier to work on the data.
+  Some columns have been renamed to make it easier to work on the data.
 
 ```{r}
 names(mydata)[2:5] = c("MCP", "SMP", "PIP", "NIP") 
@@ -41,7 +53,7 @@ mydata %>% glimpse()
 ```
 
 
-The contents of the "Date" and "SMP.Direction" columns have been changed. Some of the attributes related to time have been removed from the "Date" column. The month and year properties are not omitted, as they belong to the same month and year.
+  The contents of the "Date" and "SMP.Direction" columns have been changed. Some of the attributes related to time have been removed from the "Date" column. The month and year properties are not omitted, as they belong to the same month and year.
 
 ```{r}
 mydata = mydata %>%
@@ -52,7 +64,7 @@ mydata = mydata %>%
 ```
 
 
-The day of the week has been translated into names to increase readability.
+  The day of the week has been translated into names to increase readability.
 
 ```{r}
 days = c("Sun","Mon","Tue","Wed","Thu","Fri","Sat")
@@ -63,7 +75,7 @@ for (i in 1:7){
 mydata$WeekDay = factor(mydata$WeekDay, levels= days)
 ```
 
-A new column was created by taking the difference of SMP and MCP columns. The final version of the data was examined.
+  A new column was created by taking the difference of SMP and MCP columns. The final version of the data was examined.
 
 ```{r}
 mydata$Diff = mydata$SMP - mydata$MCP
@@ -73,10 +85,10 @@ mydata %>% glimpse()
 
 ## Data Visualization
 
-The chart below was created to see the general distribution of SMP and MCP.
+  The chart below was created to see the general distribution of SMP and MCP.
 
 ```{r}
-ggplot(mydata, aes(x=SMP, y=MCP)) + 
+ggplot(mydata, aes(x=SMP, y=MCP, color= SMP.Direction)) + 
   geom_point() + 
   theme_minimal() + 
   ggtitle("SMP vs MCP on July, 2020") + 
@@ -85,8 +97,10 @@ ggplot(mydata, aes(x=SMP, y=MCP)) +
 
 ```
 
+  In the graph above, it is clearly seen that market clearing price is higher than system marginal price when there is energy surplus.
 
-The average of SMP and MCP according to the days of the week was found and recorded as AvgofWeekDays.
+
+  The average of SMP and MCP according to the days of the week was found and recorded as AvgofWeekDays.
 
 ```{r}
 AvgofWeekDays =
@@ -96,7 +110,7 @@ AvgofWeekDays =
 
 ```
 
-The same was done according to the time of day, recorded as AvgofHours.
+  The same was done according to the time of day, recorded as AvgofHours.
 
 ```{r}
 AvgofHours =
@@ -107,7 +121,7 @@ AvgofHours =
 ```
 
 
-The information has been reorganized in order to make it graphics.
+  The information has been reorganized in order to make it graphics.
 
 ```{r}
 pivotAvgofWeekDays =
@@ -136,7 +150,7 @@ ggplot(pivotAvgofWeekDays,aes(x=WeekDay,y=Price,fill=SMPorMCP)) +
 
 ```
 
-As can be seen from the graph above, prices are lower than on other days as demand is lower on Sundays, possibly due to holidays.
+  As can be seen from the graph above, prices are lower than on other days as demand is lower on Sundays, possibly due to holidays.
 
 
 ```{r}
@@ -147,10 +161,10 @@ ggplot(pivotAvgofHours,aes(x=Hour,y=Price,fill=SMPorMCP)) +
   labs(x="Hour", y="Price", title="Avg Prices by Hour")
 ```
 
-As can be seen from the graph above, as the early morning hours are approaching, prices are lower than other hours due to the fact that electricity consumption decreases the most. Also, there is a slight decrease in the hours that coincide with the lunch break.
+  As can be seen from the graph above, as the early morning hours are approaching, prices are lower than other hours due to the fact that electricity consumption decreases the most. Also, there is a slight decrease in the hours that coincide with the lunch break.
 
 
-If the graphics are created according to the difference (SMP - MCP), the following results are obtained.
+  If the graphics are created according to the difference (SMP - MCP), the following results are obtained.
 
 ```{r}
 ggplot(data=pivotAvgofWeekDays, aes(x=WeekDay, y=AvgDiff, group=1)) +
