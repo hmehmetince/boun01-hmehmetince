@@ -1,0 +1,243 @@
+---
+title: "Diamonds Price Estimation"
+author: "Hacı Mehmet İnce"
+date: "9/13/2020"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    code_folding: hide
+---
+
+## Aim of the Project
+
+Aim of this project is to analyze the diamonds data and to predict price of diamonds with a machine learning model.
+
+
+## Loading Packages
+
+Required packages in report are loaded.
+
+```{r,warning=FALSE,message=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(corrplot)
+library(factoextra)
+library(fastDummies)
+```
+
+## Loading and Splitting Data
+
+Diamonds data is loaded and splitted train(%80) and test(%20) data. The seed for random number was taken as 503 to ensure the same results when the process was repeated.
+
+```{r}
+set.seed(503)
+diamonds_test <- diamonds %>% mutate(diamond_id = row_number()) %>%
+  group_by(cut, color, clarity) %>% sample_frac(0.2) %>% ungroup()
+diamonds_train <- anti_join(diamonds %>% mutate(diamond_id = row_number()),
+                            diamonds_test, by = "diamond_id")
+head(diamonds_train)
+
+head(diamonds_test)
+```
+
+## Processing Data 
+
+When precessing data, to make sure that the same changes are applied to both test and train data, the data before data processing will be merged, then separated again. A new column named "test" is added for separation. The column "diamond_id" has been removed as it is independent of "price".
+
+```{r}
+diamonds_train$test = 0
+diamonds_test$test = 1
+diamonds_all = rbind(diamonds_train, diamonds_test)
+
+diamonds_all = diamonds_all[,-11]
+diamonds_all$price = as.numeric(diamonds_all$price)
+str(diamonds_all)
+```
+
+
+It is checked whether there is NA value in the data. Appears that there is no NA value at all. 
+
+```{r}
+sum(is.na(diamonds_all))
+```
+
+Data is seperated again according to the column "test".
+
+```{r}
+diamonds_train = diamonds_all[diamonds_all$test==0,c(1:10)]
+diamonds_test = diamonds_all[diamonds_all$test==1,c(1:10)]
+```
+
+
+## Visualization
+
+Pairs function is used to see the relationship between the columns and understand them better. Since data has many rows, it is hard to understand in small graphs.
+
+```{r}
+pairs(diamonds_train, lower.panel = NULL)
+```
+
+Histogram charts are used to see the diamonds price distribution and the place of categorical variables in this distribution.
+
+```{r}
+ggplot(diamonds_all,aes(x=price,fill=cut)) +
+  geom_histogram(bins = 50) +
+  labs(y="# of Diamonds", x="Price",fill="Cut",title="Distribution of Prices by Cut")
+```
+
+
+```{r}
+table(diamonds_all$cut)*100/nrow(diamonds_all)
+```
+
+It is seen that the distribution of the price is not normal, almost 40 percent of diamonds have the ideal cut. The cutting quality and the number of diamonds are directly proportional. It can be said that because the diamond is valuable, attention is paid to its cut.
+
+
+```{r}
+ggplot(diamonds_all,aes(x=price,fill=clarity)) +
+  geom_histogram(bins = 50) +
+  labs(y="# of Diamonds", x="Price",fill="Clarity",title="Distribution of Prices by Clarity")
+```
+
+```{r}
+table(diamonds_all$clarity)*100/nrow(diamonds_all)
+```
+
+What is said for the cut does not apply to clarity. Extreme clarities are found in small amounts, while the middle ones are more. It can be said that it has a normal distribution and the reason for this is that clarity is independent of human influence.
+
+
+```{r}
+ggplot(diamonds_all,aes(x=price,fill=color)) +
+  geom_histogram(bins = 50) +
+  labs(y="# of Diamonds", x="Price",fill="Color",title="Distribution of Prices by Color")
+```
+
+```{r}
+table(diamonds_all$color)*100/nrow(diamonds_all)
+```
+
+Color, like clarity, is not dependent on humans, so a more balanced distribution appears.
+
+
+```{r}
+ggplot(diamonds_all,aes(x=log(price),fill=cut)) +
+  geom_histogram(bins = 50) +
+  labs(y="# of Diamonds", x="Log of Price",fill="Cut",title="Distribution of log_Prices by Cut")
+```
+
+Natural log transformation is applied to simulate the distribution to normal. "Cut" feature is used as coloring, as the cut of the diamonds depends on the people. Interestingly, although the ideal cut is better than others, it appears more at low prices. This may be because diamonds that are not naturally very valuable are sold at affordable prices with a good cut (to make them look brighter).
+
+
+Since applying a log transformation to the "price" column provides the normal distribution, it is added as a new column. Then corrplot is used to see the correlation between columns. Only numeric columns are used in correlation.
+
+```{r}
+logofPrices = log(diamonds_train$price)
+corrplot(cor(cbind(diamonds_train[,-c(2:4)],logofPrices)))
+```
+
+Naturally, x, y, z are proportional to each other and to price. Since "carat" is directly proportional to its size, it is also directly proportional to its price. "depth" and "table" do not correlate with other columns. In order to be sure, more graphs are generated.
+
+
+```{r}
+ggplot(diamonds_train,aes(x=depth, y=price)) +
+  geom_point() +
+  labs(x="Depth",y="Price",title="Relationship of Depth and Price")
+```
+
+"depth" is concentrated around 60-62, but it is difficult to tell if there is a relationship.
+
+```{r}
+ggplot(diamonds_train,aes(x=table, y=price)) +
+  geom_point() +
+  labs(x="Table",y="Price",title="Relationship of Table and Price")
+```
+
+A similar situation is valid for "table".
+
+
+## Predictive Model
+
+Since most properties are numeric, and categorical columns can be made into dummy columns, it is considered appropriate to use a linear model for prediction. Two different models are applied to estimate the price, one is normal and the other is natural log transformed price. These models are compared according to rmse values and the successful model is selected.
+
+
+First, all data is copied and dummy columns are created.
+
+```{r}
+diamonds_all2 = diamonds_all
+diamonds_all2 <- dummy_cols(diamonds_all2, select_columns = c('cut',"color","clarity"))
+names(diamonds_all2)
+```
+
+The original state of the pillars that are made dummy is removed. Data is divided into two according to the information in the "test" column.
+
+```{r}
+diamonds_all2 = diamonds_all2[,-c(2:4)]
+diamonds_train2 = diamonds_all2[diamonds_all$test==0,-8]
+diamonds_test2 = diamonds_all2[diamonds_all$test==1,-8]
+```
+
+Linear model uses train data, tries to create an equation that will fit the "price" column by using all columns.
+
+```{r}
+linearMod <- lm(price ~ ., data=diamonds_train2)
+print(linearMod)
+```
+
+The coefficients assigned to each column are printed. 3 columns have NA values, which is because they are  dependent on the remaining columns. If all the relevant columns are zero, we know that column will be 1.
+
+A function that calculates the value of rmse is created to evaluate the models. 
+
+```{r}
+rmse = function(r, p){
+  sqrt(mean((r - p)^2))
+}
+
+```
+
+The prices of diamonds are estimated using the created model and the values in the test data (which the model has not seen before). Estimated and actual values are compared by plotting them. With the rmse function, the success of the prediction is measured.
+
+```{r}
+price_prediction = predict(linearMod, diamonds_test2)
+plot(diamonds_test2$price, price_prediction, main = "Predictions vs Real Prices of Model1",xlab = "Real Price",ylab="Predicted Price")
+abline(0,1,col = "red")
+
+```
+
+
+```{r}
+rmse(price_prediction,diamonds_test2$price)
+```
+
+
+It seems from the plot that some predictions are negative, and the relationship is not fully captured. Therefore, the new model is built using price with natural log transformation applied.
+
+```{r}
+diamonds_train2$log_price = log(diamonds_train2$price)
+linearMod2 <- lm(log_price ~ ., data=diamonds_train2[,-c(4)])
+print(linearMod2)
+```
+
+
+
+```{r}
+log_price_prediction = predict(linearMod2, diamonds_test2)
+price_prediction2 = exp(log_price_prediction)
+plot(diamonds_test2$price, price_prediction2, main = "Predictions vs Real Prices of Model2",xlab = "Real Price",ylab="Predicted Price")
+abline(0,1,col = "red")
+```
+
+
+```{r}
+rmse(price_prediction2,diamonds_test2$price)
+```
+
+
+Second linear model is better than the first model both according to the value of rmse, the consistency of the estimates and the graph. Consequently, the second linear model is preferred.
+
+
+
+## References
+
+1. [Assignment Document](https://mef-bda503.github.io/archive/fall17/files/assignment_diamonds_data.html)
+2. [Creating Dummy Variables - marsja.se](https://www.marsja.se/create-dummy-variables-in-r/)

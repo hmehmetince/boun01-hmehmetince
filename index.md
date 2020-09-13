@@ -5,3 +5,6 @@
 ## Assignment 2
 ## [Electricity Market Prices](HW2/Hw2_Report.html)
 
+
+## Assignment 3
+## [Diamonds Price Estimation](HW3/Ass3-rmd.html)
