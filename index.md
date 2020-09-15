@@ -1,3 +1,4 @@
+This progress journal has been prepared for Boğaziçi University IE 48A Summer'20 course.
 
 ## Assignment 1
 ### [R Markdown Homework](RMarkdownHomework/rmd-homework.html)
@@ -12,7 +13,7 @@ This report is about July 2020’s electricity prices and prepared by using RMar
 Explatory data analysis and price estimation with linear regression.
 
 ## Final
-### [Final Submission](Final/HacıMehmetİnce-48A-Final.pdf) for [Final Questions](Final/final.pdf)
+### [My final answers](Final/HacıMehmetİnceFinal.pdf) for [final questions](Final/final.pdf)
 
 
 **You can also check [my group's Progress Journal](https://pjournal.github.io/boun01g-hisrustu/)**
