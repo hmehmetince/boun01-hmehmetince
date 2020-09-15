@@ -4,7 +4,7 @@
 
 ## Assignment 2
 ### [Electricity Market Prices](HW2/Hw2_Report.html) 
-Prepared a report about July 2020’s electricity prices using RMarkdown, dplyr and ggplot2.
+This report is about July 2020’s electricity prices and prepared by using RMarkdown, dplyr and ggplot2.
 
 
 ## Assignment 3
