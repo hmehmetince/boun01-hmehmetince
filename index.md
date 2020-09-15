@@ -13,7 +13,7 @@ This report is about July 2020’s electricity prices and prepared by using RMar
 Explatory data analysis and price estimation with linear regression.
 
 ## Final
-### [My final answers](Final/HacıMehmetİnceFinal.pdf) for [final questions](Final/final.pdf)
+### [My final answers](Final/HaciMehmetInceFinal.pdf) for [final questions](Final/final.pdf)
 
 
 **You can also check [my group's progress journal](https://pjournal.github.io/boun01g-hisrustu/)**
