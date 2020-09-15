@@ -16,4 +16,4 @@ Explatory data analysis and price estimation with linear regression.
 ### [My final answers](Final/HacıMehmetİnceFinal.pdf) for [final questions](Final/final.pdf)
 
 
-**You can also check [my group's Progress Journal](https://pjournal.github.io/boun01g-hisrustu/)**
+**You can also check [my group's progress journal](https://pjournal.github.io/boun01g-hisrustu/)**
